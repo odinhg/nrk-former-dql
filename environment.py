@@ -54,7 +54,21 @@ def read_board_from_file(filename):
 def generate_random_board(width, height):
     return [random.choices(SYMBOLS, k=width) for _ in range(height)]
 
+def count_non_empty_blocks(board):
+    return sum(block != EMPTY for row in board for block in row)
+
+def number_of_blocks_removed(board1, board2): 
+    return abs(count_non_empty_blocks(board1) - count_non_empty_blocks(board2))
+
+def is_game_over(board):
+    for i in range(len(board)):
+        for j in range(len(board[0])):
+            if board[i][j] != EMPTY: 
+                return False
+    return True
+
 # Main environment class
+
 class Board:
     def __init__(self, width: int | None = None, height: int | None = None, filename: str | None = "board.txt"):
         if filename:
@@ -64,17 +78,17 @@ class Board:
         self.width = len(self.board[0])
         self.height = len(self.board)
 
-    def is_game_over(self):
-        for i in range(len(self.board)):
-            for j in range(len(self.board[0])):
-                if self.board[i][j] != EMPTY: 
-                    return False
-        return True
-    
+
     def click(self, x, y):
         if self.board[x][y] != EMPTY:
             self.board = destroy_blocks(self.board, x, y)
             self.board = move_blocks_down(self.board)
+
+    def is_not_empty(self, x, y):
+        return self.board[x][y] != EMPTY
+
+    def get_encoded_board(self):
+        return [[([EMPTY] + SYMBOLS).index(block) for block in row] for row in self.board]
 
     def render(self, block_size=50):
         pygame.init()
@@ -82,11 +96,12 @@ class Board:
         screen = pygame.display.set_mode(res)
         running = True
 
+        n_moves = 0
         x, y = 0, 0
 
         while running:
-            if self.is_game_over():
-                running = False
+            #if is_game_over(self.board):
+            #    running = False
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -106,7 +121,21 @@ class Board:
                         x = min(self.height - 1, x + 1)
 
                     if event.key == pygame.K_SPACE:
+                        n_moves += 1
+                        board_prev = [row[:] for row in self.board] 
+
                         self.click(x, y)
+
+                        n_removed = number_of_blocks_removed(board_prev, self.board)
+
+                        if is_game_over(self.board):
+                            reward = 500 // n_moves
+                        else:
+                            reward = n_removed - 2
+                        
+                        pygame.display.set_caption(f"Rmd: {n_removed}, Moves: {n_moves}, Reward: {reward}")
+                            
+
 
             screen.fill(BG_COLOR)
 
@@ -126,6 +155,7 @@ class Board:
                 ],
                 width=5,
             )
+
 
             pygame.display.flip()
 
