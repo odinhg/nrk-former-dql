@@ -49,7 +49,7 @@ Board	environment.py	/^class Board:$/;"	c
 COLORS	environment.py	/^COLORS = {$/;"	v
 CURSOR_COLOR	environment.py	/^CURSOR_COLOR = Color("#ff0000")$/;"	v
 EMPTY	environment.py	/^EMPTY = " "$/;"	v
-EPS_DECAY	dqn.py	/^EPS_DECAY = 10000 $/;"	v
+EPS_DECAY	dqn.py	/^EPS_DECAY = 100000#10000 $/;"	v
 EPS_END	dqn.py	/^EPS_END = 0.05$/;"	v
 EPS_START	dqn.py	/^EPS_START = 0.999$/;"	v
 GAMMA	dqn.py	/^GAMMA = 0.99$/;"	v
