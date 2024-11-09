@@ -25,6 +25,8 @@ class Model(nn.Module):
                 nn.init.zeros_(m.bias)
     
     def forward(self, x):
+        # Normalize the input
+        x = x / (self.width * self.height)
         x = self.fc(x)
         return x
 

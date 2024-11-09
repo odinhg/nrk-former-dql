@@ -15,25 +15,30 @@ def select_action(state, epsilon, main_network):
         return valid_actions[main_network(state).view(-1)[valid_actions].argmax().item()]
 
 
+def reward_function(state, action, next_state, is_terminal):
+    if is_terminal:
+        reward = 1
+    else:
+        reward = -0.1
+
+    return torch.tensor(reward).float()
+
 width, height = 3, 4#7, 9
 board = Board(width, height)
 n_actions = width * height
 
 main_network = Model(width, height)
 target_network = Model(width, height)
-#target_network.load_state_dict(main_network.state_dict())
-
-main_network.train()
-target_network.eval()
+target_network.load_state_dict(main_network.state_dict())
 
 
-BATCH_SIZE = 64 
-GAMMA = 0.90
-EPS_START = 0.99
+BATCH_SIZE = 128#64 
+GAMMA = 0.99
+EPS_START = 0.999
 EPS_END = 0.05
-EPS_DECAY = 100000 
-TAU = 0.01
-LR = 1e-3
+EPS_DECAY = 10000 
+TAU = 0.001
+LR = 1e-5
 
 n_episodes = 0
 epsilon = EPS_START
@@ -43,22 +48,26 @@ moves_used = []
 episode_rewards = []
 episode_reward = 0
 
-optimizer = torch.optim.AdamW(main_network.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+optimizer = torch.optim.Adam(main_network.parameters(), lr=LR)
+memory = ReplayMemory(5000)
 
 while True:
     state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
     action = select_action(state, epsilon, main_network)
     board.click(action)
     next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
-
     is_terminal = board.is_game_over()
-    n_blocks_removed = (next_state == 0).sum().item() - (state == 0).sum().item()
-    reward = torch.tensor(10 if is_terminal else -2).float()
+    
+    #print(f"Original state:\n{state.view(height, width)}")
+    #print(f"Action: {action} (x={action % width}, y={action // width})")
+    #print(f"Next state:\n{next_state.view(height, width)}")
+    #print(f"Is terminal: {is_terminal}")
+    #print(f"Value of clicked cell: {state[0][action]}")
+
+    reward = reward_function(state, action, next_state, is_terminal)
+
     episode_reward += reward.item()
     memory.push(state, action, reward, next_state, is_terminal)
-
-    state = next_state
 
     if is_terminal:
         epsilon = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * n_episodes / EPS_DECAY)
@@ -83,14 +92,13 @@ while True:
         target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, keepdim=True).values * (1 - is_terminal_batch)
         
         loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)
-        #loss = torch.nn.functional.mse_loss(Q_values, target_Q_values)
 
         losses.append(loss.item())
 
         optimizer.zero_grad()
         loss.backward()
-        #for param in main_network.parameters():
-        #    param.grad.data.clamp_(-1, 1)
+        for param in main_network.parameters():
+            param.grad.data.clamp_(-10, 10)
         optimizer.step()
 
 
@@ -100,11 +108,12 @@ while True:
             target_state_dict[key] = main_network_state_dict[key]*TAU + target_state_dict[key]*(1-TAU)
         target_network.load_state_dict(target_state_dict)
 
+
         if (n_episodes + 1) % 100 == 0:
             mean_loss = sum(losses) / len(losses)
             mean_moves_used = sum(moves_used) / len(moves_used)
             mean_episode_reward = sum(episode_rewards) / len(episode_rewards)
-            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.4f}, Moves used: {mean_moves_used:.1f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.1f}")
+            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.4f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f}")
             losses = []
             moves_used = []
 
