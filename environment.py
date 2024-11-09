@@ -53,7 +53,11 @@ def read_board_from_file(filename):
     return board
 
 def generate_random_board(width, height):
-    return [random.choices(SYMBOLS, k=width) for _ in range(height)]
+    # Generate the same env everytime (for testing DQN)
+    rng = random.Random()
+    rng.seed(0)
+    return [rng.choices(SYMBOLS, k=width) for _ in range(height)]
+    #return [random.choices(SYMBOLS, k=width) for _ in range(height)]
 
 def count_non_empty_blocks(board):
     return sum(block != EMPTY for row in board for block in row)

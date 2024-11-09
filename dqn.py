@@ -6,16 +6,27 @@ from environment import Board
 from replay_memory import ReplayMemory, Transition 
 from model import Model
 
-def select_action(state, epsilon, main_network):
+def select_action(state, epsilon, main_network, device):
     # Choose (valid) action based on epsilon-greedy strategy 
     valid_actions = state.view(-1).nonzero().squeeze(1)
     if random.random() < epsilon:
-        return random.choice(valid_actions).item()
-    with torch.no_grad():
-        return valid_actions[main_network(state).view(-1)[valid_actions].argmax().item()]
+        action = random.choice(valid_actions).item()
+    else:
+        with torch.no_grad():
+            state = state.to(device)
+            q_values = main_network(state).view(-1)
+            valid_q_values = q_values.cpu()[valid_actions]
+            action_idx = valid_q_values.argmax()
+            action = valid_actions[action_idx].item()
+    return action
 
 
 def reward_function(state, action, next_state, is_terminal):
+    # TODO: Make rewards less sparse
+    # For example,
+    # - the size of the largest blob (connected component of the same color)
+    # - eliminating a color (could lead to unwanted behaviour)
+    # - number of blocks removed by action (could lead to greedy behaviour)
     if is_terminal:
         reward = 1
     else:
@@ -23,7 +34,7 @@ def reward_function(state, action, next_state, is_terminal):
 
     return torch.tensor(reward).float()
 
-width, height = 3, 4#7, 9
+width, height = 7, 9#3, 4#7, 9
 board = Board(width, height)
 n_actions = width * height
 
@@ -33,13 +44,18 @@ main_network = Model(width, height).to(device)
 target_network = Model(width, height).to(device)
 target_network.load_state_dict(main_network.state_dict())
 
+main_network.train()
+for param in target_network.parameters():
+    param.requires_grad = False
 
-BATCH_SIZE = 128#64 
-GAMMA = 0.99
-EPS_START = 0.999
+
+BATCH_SIZE = 64 
+GAMMA = 0.999
+EPS_START = 0.99
 EPS_END = 0.05
-EPS_DECAY = 100000#10000 
-TAU = 0.001
+EPS_DECAY = 100000#1000000#10000 
+TAU = 0.200
+TARGET_UPDATE_STEPS = 10000
 LR = 1e-5
 
 n_episodes = 0
@@ -55,7 +71,7 @@ memory = ReplayMemory(5000)
 
 while True:
     state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
-    action = select_action(state, epsilon, main_network)
+    action = select_action(state, epsilon, main_network, device)
     board.click(action)
     next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
     is_terminal = board.is_game_over()
@@ -79,6 +95,14 @@ while True:
         episode_reward = 0
         board.reset()
 
+        if (n_episodes + 1) % 1000 == 0:
+            mean_loss = sum(losses) / len(losses)
+            mean_moves_used = sum(moves_used) / len(moves_used)
+            mean_episode_reward = sum(episode_rewards) / len(episode_rewards)
+            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.4f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f}")
+            losses = []
+            moves_used = []
+
         if len(memory) < BATCH_SIZE:
             continue
 
@@ -92,8 +116,12 @@ while True:
         is_terminal_batch = torch.tensor(batch.is_terminal).int().unsqueeze(1).to(device)
         Q_values = main_network(state_batch).gather(1, action_batch)
 
+        """
+         If you want to restrict it to only sampling actions that "make sense" then you should also make sure that you consider that in calculating the max Q of the next state as well 
+         """
+
         target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, keepdim=True).values * (1 - is_terminal_batch)
-        
+
         loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)
 
         losses.append(loss.item())
@@ -104,21 +132,20 @@ while True:
             param.grad.data.clamp_(-10, 10)
         optimizer.step()
 
+        """
+        with torch.no_grad():
+            target_state_dict = target_network.state_dict()
+            main_network_state_dict = main_network.state_dict()
+            for key in main_network_state_dict:
+                target_state_dict[key] = main_network_state_dict[key]*TAU + target_state_dict[key]*(1-TAU)
+            target_network.load_state_dict(target_state_dict)
+        """
 
-        target_state_dict = target_network.state_dict()
-        main_network_state_dict = main_network.state_dict()
-        for key in main_network_state_dict:
-            target_state_dict[key] = main_network_state_dict[key]*TAU + target_state_dict[key]*(1-TAU)
-        target_network.load_state_dict(target_state_dict)
+        # Hard target update
+        if (n_episodes + 1) % TARGET_UPDATE_STEPS == 0:
+            target_network.load_state_dict(main_network.state_dict())
 
 
-        if (n_episodes + 1) % 100 == 0:
-            mean_loss = sum(losses) / len(losses)
-            mean_moves_used = sum(moves_used) / len(moves_used)
-            mean_episode_reward = sum(episode_rewards) / len(episode_rewards)
-            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.4f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f}")
-            losses = []
-            moves_used = []
 
 
 
