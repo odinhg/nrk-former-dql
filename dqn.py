@@ -27,8 +27,10 @@ width, height = 3, 4#7, 9
 board = Board(width, height)
 n_actions = width * height
 
-main_network = Model(width, height)
-target_network = Model(width, height)
+device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+
+main_network = Model(width, height).to(device)
+target_network = Model(width, height).to(device)
 target_network.load_state_dict(main_network.state_dict())
 
 
@@ -83,12 +85,13 @@ while True:
         transitions = memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
 
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.tensor(batch.action).unsqueeze(1)
-        reward_batch = torch.tensor(batch.reward).unsqueeze(1)
-        next_state_batch = torch.cat(batch.next_state)
-        is_terminal_batch = torch.tensor(batch.is_terminal).int().unsqueeze(1)
+        state_batch = torch.cat(batch.state).to(device)
+        action_batch = torch.tensor(batch.action).unsqueeze(1).to(device)
+        reward_batch = torch.tensor(batch.reward).unsqueeze(1).to(device)
+        next_state_batch = torch.cat(batch.next_state).to(device)
+        is_terminal_batch = torch.tensor(batch.is_terminal).int().unsqueeze(1).to(device)
         Q_values = main_network(state_batch).gather(1, action_batch)
+
         target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, keepdim=True).values * (1 - is_terminal_batch)
         
         loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)
