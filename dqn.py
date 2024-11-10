@@ -1,6 +1,7 @@
 import torch
 import random
 import math
+import numpy as np
 
 from environment import Board
 from replay_memory import ReplayMemory, Transition 
@@ -34,9 +35,23 @@ def reward_function(state, action, next_state, is_terminal):
 
     return torch.tensor(reward).float()
 
-width, height = 7, 9#3, 4#7, 9
-board = Board(width, height)
+###
+width, height = 7, 9 #3, 4
 n_actions = width * height
+
+BATCH_SIZE = 64 
+GAMMA = 0.999
+EPS_START = 0.99
+EPS_END = 0.01
+EPS_DECAY = 500000
+TAU = 0.200
+TARGET_UPDATE_STEPS = 10000
+REPLAY_STEPS = 5
+LR = 1e-5#1e-5
+CHECKPOINT_PATH = "main_network.pt"
+####
+
+board = Board(width, height)
 
 device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 
@@ -48,16 +63,7 @@ main_network.train()
 for param in target_network.parameters():
     param.requires_grad = False
 
-
-BATCH_SIZE = 64 
-GAMMA = 0.999
-EPS_START = 0.99
-EPS_END = 0.05
-EPS_DECAY = 100000#1000000#10000 
-TAU = 0.200
-TARGET_UPDATE_STEPS = 10000
-LR = 1e-5
-
+n_steps = 0
 n_episodes = 0
 epsilon = EPS_START
 
@@ -67,7 +73,7 @@ episode_rewards = []
 episode_reward = 0
 
 optimizer = torch.optim.Adam(main_network.parameters(), lr=LR)
-memory = ReplayMemory(5000)
+memory = ReplayMemory(10000)#(5000)
 
 while True:
     state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
@@ -86,6 +92,7 @@ while True:
 
     episode_reward += reward.item()
     memory.push(state, action, reward, next_state, is_terminal)
+    n_steps += 1
 
     if is_terminal:
         epsilon = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * n_episodes / EPS_DECAY)
@@ -96,16 +103,19 @@ while True:
         board.reset()
 
         if (n_episodes + 1) % 1000 == 0:
-            mean_loss = sum(losses) / len(losses)
-            mean_moves_used = sum(moves_used) / len(moves_used)
-            mean_episode_reward = sum(episode_rewards) / len(episode_rewards)
-            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.4f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f}")
+            # Print summary statistics for the last episodes
+            mean_loss = np.mean(losses)
+            mean_moves_used = np.mean(moves_used)
+            mean_episode_reward = np.mean(episode_rewards)
+            median_episode_reward = np.median(episode_rewards) 
+            min_episode_reward = np.min(episode_rewards)
+            max_episode_reward = np.max(episode_rewards)
+            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.5f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f} (mean) {median_episode_reward:.2f} (median) {min_episode_reward:.2f} (min) {max_episode_reward:.2f} (max)")
             losses = []
             moves_used = []
+            episode_rewards = []
 
-        if len(memory) < BATCH_SIZE:
-            continue
-
+    if len(memory) >= BATCH_SIZE and (n_steps + 1) % REPLAY_STEPS == 0:
         transitions = memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
 
@@ -116,13 +126,17 @@ while True:
         is_terminal_batch = torch.tensor(batch.is_terminal).int().unsqueeze(1).to(device)
         Q_values = main_network(state_batch).gather(1, action_batch)
 
-        """
-         If you want to restrict it to only sampling actions that "make sense" then you should also make sure that you consider that in calculating the max Q of the next state as well 
-         """
+         #If you want to restrict it to only sampling actions that "make sense" then you should also make sure that you consider that in calculating the max Q of the next state as well
+        target_next_batch = target_network(next_state_batch)
+        target_next_batch[next_state_batch == 0] = -float("inf")
+        max_next_q_values = target_next_batch.max(dim=-1, keepdim=True).values
+        max_next_q_values[max_next_q_values == -float("inf")] = 0
 
-        target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, keepdim=True).values * (1 - is_terminal_batch)
+        target_Q_values = reward_batch + GAMMA * max_next_q_values * (1 - is_terminal_batch)
+        #target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, keepdim=True).values * (1 - is_terminal_batch)
 
-        loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)
+        loss = torch.nn.functional.mse_loss(Q_values, target_Q_values)
+        #loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)
 
         losses.append(loss.item())
 
@@ -141,11 +155,10 @@ while True:
             target_network.load_state_dict(target_state_dict)
         """
 
-        # Hard target update
-        if (n_episodes + 1) % TARGET_UPDATE_STEPS == 0:
+        # Hard target update and save main policy network checkpoint
+        if (n_steps + 1) % TARGET_UPDATE_STEPS == 0:
             target_network.load_state_dict(main_network.state_dict())
-
-
+            torch.save(main_network.state_dict(), CHECKPOINT_PATH)
 
 
 
