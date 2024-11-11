@@ -11,8 +11,8 @@ class Model(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(width * height, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            #nn.Linear(hidden_dim, hidden_dim),
+            #nn.ReLU(),
             nn.Linear(hidden_dim, width * height)
         )
 

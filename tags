@@ -43,75 +43,97 @@
 !_TAG_ROLE_DESCRIPTION!Python!module	namespace	/namespace from where classes\/variables\/functions are imported/
 !_TAG_ROLE_DESCRIPTION!Python!unknown	imported	/imported from the other module/
 !_TAG_ROLE_DESCRIPTION!Python!unknown	indirectlyImported	/classes\/variables\/functions\/modules imported in alternative name/
-BATCH_SIZE	dqn.py	/^BATCH_SIZE = 128#64 $/;"	v
+BATCH_SIZE	dqn.py	/^BATCH_SIZE = 64 $/;"	v
 BG_COLOR	environment.py	/^BG_COLOR = Color("#000000")$/;"	v
 Board	environment.py	/^class Board:$/;"	c
+CHECKPOINT_PATH	dqn.py	/^CHECKPOINT_PATH = "main_network.pt"$/;"	v
 COLORS	environment.py	/^COLORS = {$/;"	v
 CURSOR_COLOR	environment.py	/^CURSOR_COLOR = Color("#ff0000")$/;"	v
 EMPTY	environment.py	/^EMPTY = " "$/;"	v
-EPS_DECAY	dqn.py	/^EPS_DECAY = 100000#10000 $/;"	v
-EPS_END	dqn.py	/^EPS_END = 0.05$/;"	v
-EPS_START	dqn.py	/^EPS_START = 0.999$/;"	v
-GAMMA	dqn.py	/^GAMMA = 0.99$/;"	v
-LR	dqn.py	/^LR = 1e-5$/;"	v
+EPS_DECAY	dqn.py	/^EPS_DECAY = 500000$/;"	v
+EPS_END	dqn.py	/^EPS_END = 0.01$/;"	v
+EPS_START	dqn.py	/^EPS_START = 0.99$/;"	v
+GAMMA	dqn.py	/^GAMMA = 0.999$/;"	v
+LR	dqn.py	/^LR = 1e-5#1e-5$/;"	v
 Model	model.py	/^class Model(nn.Module):$/;"	c
 Q_values	dqn.py	/^        Q_values = main_network(state_batch).gather(1, action_batch)$/;"	v
+REPLAY_STEPS	dqn.py	/^REPLAY_STEPS = 5$/;"	v
 ReplayMemory	replay_memory.py	/^class ReplayMemory(object):$/;"	c
 SYMBOLS	environment.py	/^SYMBOLS = ["B", "G", "P", "O"]$/;"	v
 SYMBOL_TO_INDEX	environment.py	/^SYMBOL_TO_INDEX = {symbol: i for i, symbol in enumerate([EMPTY] + SYMBOLS)}$/;"	v
 Solving NRK's "Former" Puzzle Game Using Deep Q-Learning	README.md	/^# Solving NRK's "Former" Puzzle Game Using Deep Q-Learning$/;"	c
-TAU	dqn.py	/^TAU = 0.001$/;"	v
+TARGET_UPDATE_STEPS	dqn.py	/^TARGET_UPDATE_STEPS = 10000$/;"	v
+TAU	dqn.py	/^TAU = 0.200$/;"	v
 Transition	replay_memory.py	/^Transition = namedtuple("Transition", ("state", "action", "reward", "next_state", "is_terminal")/;"	v
 __init__	environment.py	/^    def __init__(self, width: int | None = None, height: int | None = None, filename: str | None/;"	m	class:Board
-__init__	model.py	/^    def __init__(self, width, height):$/;"	m	class:Model
+__init__	model.py	/^    def __init__(self, width, height, hidden_dim=128):$/;"	m	class:Model
 __init__	replay_memory.py	/^    def __init__(self, capacity):$/;"	m	class:ReplayMemory
 __len__	replay_memory.py	/^    def __len__(self):$/;"	m	class:ReplayMemory
-action	dqn.py	/^    action = select_action(state, epsilon, main_network)$/;"	v
+action	dqn.py	/^    action = select_action(state, epsilon, main_network, device)$/;"	v
+action	inference.py	/^    action = valid_actions[action_idx].item()$/;"	v
 action_batch	dqn.py	/^        action_batch = torch.tensor(batch.action).unsqueeze(1).to(device)$/;"	v
+action_idx	inference.py	/^    action_idx = valid_q_values.argmax()$/;"	v
 batch	dqn.py	/^        batch = Transition(*zip(*transitions))$/;"	v
-board	dqn.py	/^board = Board(width, height)$/;"	v
-board	environment.py	/^    board = Board(3, 4)$/;"	v
+board	dqn.py	/^board = Board(filename="board.txt")$/;"	v
+board	environment.py	/^    board = Board(filename="board.txt")$/;"	v
+board	inference.py	/^board = Board(filename=board_file)$/;"	v
+board_file	inference.py	/^board_file = "board.txt"$/;"	v
 click	environment.py	/^    def click(self, index):$/;"	m	class:Board
 coords_to_index	environment.py	/^    def coords_to_index(self, x, y):$/;"	m	class:Board
 count_non_empty_blocks	environment.py	/^def count_non_empty_blocks(board):$/;"	f
 destroy_blocks	environment.py	/^def destroy_blocks(board, x, y):$/;"	f
 device	dqn.py	/^device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")$/;"	v
+device	inference.py	/^device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")$/;"	v
 episode_reward	dqn.py	/^        episode_reward = 0$/;"	v
 episode_reward	dqn.py	/^episode_reward = 0$/;"	v
+episode_rewards	dqn.py	/^            episode_rewards = []$/;"	v
 episode_rewards	dqn.py	/^episode_rewards = []$/;"	v
 epsilon	dqn.py	/^        epsilon = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * n_episodes \/ EPS_DECAY)$/;"	v
 epsilon	dqn.py	/^epsilon = EPS_START$/;"	v
 forward	model.py	/^    def forward(self, x):$/;"	m	class:Model
 generate_random_board	environment.py	/^def generate_random_board(width, height):$/;"	f
 get_encoded_board	environment.py	/^    def get_encoded_board(self):$/;"	m	class:Board
-height	dqn.py	/^width, height = 3, 4#7, 9$/;"	v
+height	dqn.py	/^width, height = 7, 9 #3, 4$/;"	v
+height	inference.py	/^width, height = board.width, board.height$/;"	v
 index_to_coords	environment.py	/^    def index_to_coords(self, index):$/;"	m	class:Board
 init_weights	model.py	/^    def init_weights(self):$/;"	m	class:Model
 is_game_over	environment.py	/^    def is_game_over(self):$/;"	m	class:Board
 is_not_empty	environment.py	/^    def is_not_empty(self, x, y):$/;"	m	class:Board
 is_terminal	dqn.py	/^    is_terminal = board.is_game_over()$/;"	v
+is_terminal	inference.py	/^    is_terminal = board.is_game_over()$/;"	v
+is_terminal	inference.py	/^is_terminal = False$/;"	v
 is_terminal_batch	dqn.py	/^        is_terminal_batch = torch.tensor(batch.is_terminal).int().unsqueeze(1).to(device)$/;"	v
 is_within_bounds	environment.py	/^def is_within_bounds(board, x, y):$/;"	f
-loss	dqn.py	/^        loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)$/;"	v
+loss	dqn.py	/^        loss = torch.nn.functional.mse_loss(Q_values, target_Q_values)$/;"	v
 losses	dqn.py	/^            losses = []$/;"	v
 losses	dqn.py	/^losses = []$/;"	v
 main_network	dqn.py	/^main_network = Model(width, height).to(device)$/;"	v
-main_network_state_dict	dqn.py	/^        main_network_state_dict = main_network.state_dict()$/;"	v
-mean_episode_reward	dqn.py	/^            mean_episode_reward = sum(episode_rewards) \/ len(episode_rewards)$/;"	v
-mean_loss	dqn.py	/^            mean_loss = sum(losses) \/ len(losses)$/;"	v
-mean_moves_used	dqn.py	/^            mean_moves_used = sum(moves_used) \/ len(moves_used)$/;"	v
-memory	dqn.py	/^memory = ReplayMemory(5000)$/;"	v
+main_network	inference.py	/^main_network = Model(width, height)$/;"	v
+max_episode_reward	dqn.py	/^            max_episode_reward = np.max(episode_rewards)$/;"	v
+max_next_q_values	dqn.py	/^        max_next_q_values = target_next_batch.max(dim=-1, keepdim=True).values$/;"	v
+mean_episode_reward	dqn.py	/^            mean_episode_reward = np.mean(episode_rewards)$/;"	v
+mean_loss	dqn.py	/^            mean_loss = np.mean(losses)$/;"	v
+mean_moves_used	dqn.py	/^            mean_moves_used = np.mean(moves_used)$/;"	v
+median_episode_reward	dqn.py	/^            median_episode_reward = np.median(episode_rewards) $/;"	v
+memory	dqn.py	/^memory = ReplayMemory(10000)#(5000)$/;"	v
+min_episode_reward	dqn.py	/^            min_episode_reward = np.min(episode_rewards)$/;"	v
+model_file	inference.py	/^model_file = "main_network.pt"$/;"	v
 move_blocks_down	environment.py	/^def move_blocks_down(board):$/;"	f
 moves_used	dqn.py	/^            moves_used = []$/;"	v
 moves_used	dqn.py	/^moves_used = []$/;"	v
 n_actions	dqn.py	/^n_actions = width * height$/;"	v
 n_episodes	dqn.py	/^n_episodes = 0$/;"	v
+n_moves	inference.py	/^n_moves = 0$/;"	v
+n_steps	dqn.py	/^n_steps = 0$/;"	v
 next_state	dqn.py	/^    next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)$/;"	v
+next_state	inference.py	/^    next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)$/;"	v
 next_state_batch	dqn.py	/^        next_state_batch = torch.cat(batch.next_state).to(device)$/;"	v
 nn	model.py	/^import torch.nn as nn$/;"	I	nameref:module:torch.nn
+np	dqn.py	/^import numpy as np$/;"	I	nameref:module:numpy
 number_of_blocks_removed	environment.py	/^def number_of_blocks_removed(board1, board2): $/;"	f
 optimizer	dqn.py	/^optimizer = torch.optim.Adam(main_network.parameters(), lr=LR)$/;"	v
 push	replay_memory.py	/^    def push(self, *args):$/;"	m	class:ReplayMemory
+q_values	inference.py	/^    q_values = main_network(state).view(-1)$/;"	v
 read_board_from_file	environment.py	/^def read_board_from_file(filename):$/;"	f
 render	environment.py	/^    def render(self, block_size=50):$/;"	m	class:Board
 reset	environment.py	/^    def reset(self):$/;"	m	class:Board
@@ -119,11 +141,16 @@ reward	dqn.py	/^    reward = reward_function(state, action, next_state, is_termi
 reward_batch	dqn.py	/^        reward_batch = torch.tensor(batch.reward).unsqueeze(1).to(device)$/;"	v
 reward_function	dqn.py	/^def reward_function(state, action, next_state, is_terminal):$/;"	f
 sample	replay_memory.py	/^    def sample(self, batch_size):$/;"	m	class:ReplayMemory
-select_action	dqn.py	/^def select_action(state, epsilon, main_network):$/;"	f
+select_action	dqn.py	/^def select_action(state, epsilon, main_network, device):$/;"	f
 state	dqn.py	/^    state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)$/;"	v
+state	inference.py	/^    state = state.to(device)$/;"	v
+state	inference.py	/^    state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)$/;"	v
 state_batch	dqn.py	/^        state_batch = torch.cat(batch.state).to(device)$/;"	v
-target_Q_values	dqn.py	/^        target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, kee/;"	v
+target_Q_values	dqn.py	/^        target_Q_values = reward_batch + GAMMA * max_next_q_values * (1 - is_terminal_batch)$/;"	v
 target_network	dqn.py	/^target_network = Model(width, height).to(device)$/;"	v
-target_state_dict	dqn.py	/^        target_state_dict = target_network.state_dict()$/;"	v
+target_next_batch	dqn.py	/^        target_next_batch = target_network(next_state_batch)$/;"	v
 transitions	dqn.py	/^        transitions = memory.sample(BATCH_SIZE)$/;"	v
-width	dqn.py	/^width, height = 3, 4#7, 9$/;"	v
+valid_actions	inference.py	/^    valid_actions = state.view(-1).nonzero().squeeze(1)$/;"	v
+valid_q_values	inference.py	/^    valid_q_values = q_values.cpu()[valid_actions]$/;"	v
+width	dqn.py	/^width, height = 7, 9 #3, 4$/;"	v
+width	inference.py	/^width, height = board.width, board.height$/;"	v

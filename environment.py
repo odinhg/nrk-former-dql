@@ -72,12 +72,16 @@ class Board:
             self.board = read_board_from_file(filename)
         else:
             self.board = generate_random_board(width, height)
+        self.filename = filename
         self.width = len(self.board[0])
         self.height = len(self.board)
         self.clicks = 0
 
     def reset(self):
-        self.board = generate_random_board(self.width, self.height)
+        if self.filename:
+            self.board = read_board_from_file(self.filename)
+        else:
+            self.board = generate_random_board(self.width, self.height)
         self.clicks = 0
 
     def index_to_coords(self, index):
@@ -162,6 +166,6 @@ class Board:
         pygame.quit()
 
 if __name__ == "__main__":
-    board = Board(3, 4)
-    #board = Board(filename="board.txt")
+    #board = Board(3, 4)
+    board = Board(filename="board.txt")
     board.render()

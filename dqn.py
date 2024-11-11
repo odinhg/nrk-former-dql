@@ -51,7 +51,8 @@ LR = 1e-5#1e-5
 CHECKPOINT_PATH = "main_network.pt"
 ####
 
-board = Board(width, height)
+#board = Board(width, height)
+board = Board(filename="board.txt")
 
 device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 
