@@ -37,6 +37,5 @@ while not is_terminal:
     actions.append(action)
 
 print(f"Board cleared in {len(actions)} moves:")
-print("x\ty")
-for action in actions:
-    print(f"{action % width}\t{action // width}")
+for i, action in enumerate(actions):
+    print(f"{i+1}.\t({action % width}, {action // width})")
