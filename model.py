@@ -4,15 +4,15 @@ class Model(nn.Module):
     """
     Base model to use in the Deep Q Network
     """
-    def __init__(self, width, height, hidden_dim=128):
+    def __init__(self, width, height, hidden_dim=256):
         super().__init__()
         self.width = width
         self.height = height
         self.fc = nn.Sequential(
             nn.Linear(width * height, hidden_dim),
             nn.ReLU(),
-            #nn.Linear(hidden_dim, hidden_dim),
-            #nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
             nn.Linear(hidden_dim, width * height)
         )
 
