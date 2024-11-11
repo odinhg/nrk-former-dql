@@ -28,10 +28,16 @@ def reward_function(state, action, next_state, is_terminal):
     # - the size of the largest blob (connected component of the same color)
     # - eliminating a color (could lead to unwanted behaviour)
     # - number of blocks removed by action (could lead to greedy behaviour)
+    #if is_terminal:
+    #    reward = 1
+    #else:
+    #    reward = -0.1
+
+    n_removed = ((next_state == 0).detach().sum() - (state == 0).detach().sum()).item()
     if is_terminal:
-        reward = 1
+        reward = 10
     else:
-        reward = -0.1
+        reward = -1 / n_removed
 
     return torch.tensor(reward).float()
 
@@ -111,7 +117,7 @@ while True:
             median_episode_reward = np.median(episode_rewards) 
             min_episode_reward = np.min(episode_rewards)
             max_episode_reward = np.max(episode_rewards)
-            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.5f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f} (mean) {median_episode_reward:.2f} (median) {min_episode_reward:.2f} (min) {max_episode_reward:.2f} (max)")
+            print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.5f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f}")
             losses = []
             moves_used = []
             episode_rewards = []
