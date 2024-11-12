@@ -29,6 +29,9 @@ while not is_terminal:
     valid_q_values = q_values.cpu()[valid_actions]
     action_idx = valid_q_values.argmax()
     action = valid_actions[action_idx].item()
+
+    board.save_board_image(f"policy_solution/board_{len(actions):02}.png", action)
+
     board.click(action)
     next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
     is_terminal = board.is_game_over()

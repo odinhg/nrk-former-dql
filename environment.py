@@ -53,17 +53,34 @@ def read_board_from_file(filename):
     return board
 
 def generate_random_board(width, height):
-    # Generate the same env everytime (for testing DQN)
-    #rng = random.Random()
-    #rng.seed(0)
-    #return [rng.choices(SYMBOLS, k=width) for _ in range(height)]
     return [random.choices(SYMBOLS, k=width) for _ in range(height)]
 
-def count_non_empty_blocks(board):
-    return sum(block != EMPTY for row in board for block in row)
+def render_frame(screen, block_size, board, x, y):
+    height, width = len(board), len(board[0])
+    screen.fill(BG_COLOR)
 
-def number_of_blocks_removed(board1, board2): 
-    return abs(count_non_empty_blocks(board1) - count_non_empty_blocks(board2))
+    for i in range(height):
+        for j in range(width):
+            color = COLORS[board[i][j]]
+            pygame.draw.rect(screen, color, (j * block_size, i * block_size, block_size, block_size), border_radius=30)
+
+    pygame.draw.polygon(
+        screen,
+        CURSOR_COLOR,
+        [
+            (x * block_size, y * block_size),
+            ((x + 1) * block_size, y * block_size),
+            ((x + 1) * block_size, (y + 1) * block_size),
+            (x * block_size, (y + 1) * block_size),
+        ],
+        width=5,
+    )
+
+def coord_to_index(x, y, width):
+    return y * width + x
+
+def index_to_coord(index, width):
+    return index % width, index // width
 
 # Main environment class
 class Board:
@@ -84,14 +101,8 @@ class Board:
             self.board = generate_random_board(self.width, self.height)
         self.clicks = 0
 
-    def index_to_coords(self, index):
-        return index % self.width, index // self.width
-
-    def coords_to_index(self, x, y):
-        return y * self.width + x
-
     def click(self, index):
-        x, y = self.index_to_coords(index)
+        x, y = index_to_coord(index, self.width)
         if self.is_not_empty(x, y):
             self.board = destroy_blocks(self.board, x, y)
             self.board = move_blocks_down(self.board)
@@ -106,26 +117,27 @@ class Board:
     def get_encoded_board(self):
         return [SYMBOL_TO_INDEX[block] for row in self.board for block in row]
 
-    def render(self, block_size=50):
+    def save_board_image(self, filename, index):
+        x, y = index_to_coord(index, self.width)
+        block_size = 80
+        res = (self.width * block_size, self.height * block_size)
+        screen = pygame.Surface(res)
+        render_frame(screen, block_size, self.board, x, y)
+        pygame.image.save(screen,  filename)
+
+    def play(self, block_size=80):
         pygame.init()
         res = (self.width * block_size, self.height * block_size)
         screen = pygame.display.set_mode(res)
         running = True
-
         n_moves = 0
         x, y = 0, 0
-
         while running:
-            #if is_game_over(self.board):
-            #    running = False
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         x = max(0, x - 1)
@@ -135,37 +147,15 @@ class Board:
                         y = max(0, y - 1)
                     if event.key == pygame.K_DOWN:
                         y = min(self.height - 1, y + 1)
-
                     if event.key == pygame.K_SPACE:
                         n_moves += 1
-                        self.click(self.coords_to_index(x, y))
+                        self.click(coord_to_index(x, y, self.width))
                         pygame.display.set_caption(f"Moves: {n_moves}")
 
-            screen.fill(BG_COLOR)
-
-            for i in range(self.height):
-                for j in range(self.width):
-                    color = COLORS[self.board[i][j]]
-                    pygame.draw.rect(screen, color, (j * block_size, i * block_size, block_size, block_size), border_radius=20)
-
-            pygame.draw.polygon(
-                screen,
-                CURSOR_COLOR,
-                [
-                    (x * block_size, y * block_size),
-                    ((x + 1) * block_size, y * block_size),
-                    ((x + 1) * block_size, (y + 1) * block_size),
-                    (x * block_size, (y + 1) * block_size),
-                ],
-                width=5,
-            )
-
-
+            render_frame(screen, block_size, self.board, x, y)
             pygame.display.flip()
-
         pygame.quit()
 
 if __name__ == "__main__":
-    #board = Board(3, 4)
     board = Board(filename="board.txt")
-    board.render()
+    board.play()

@@ -47,7 +47,7 @@ def reward_function(state, action, next_state, is_terminal, width, height, n_mov
         # Creating new connected components
         board = state.view(height, width)
         next_board = next_state.view(height, width)
-        if (board == 0).all(axis=0).sum() < (next_board == 0).all(axis=0).sum():
+        if (board[-1] == 0).sum() < (next_board[-1] == 0).sum():
             new_components = connected_components(next_board) - connected_components(board)
             reward -= new_components
 
