@@ -41,8 +41,8 @@ def reward_function(state, action, next_state, is_terminal, width, height, n_mov
         reward = 100 / n_moves
     else:
         reward = -1 # Base reward
-        n_removed = ((next_state == 0).detach().sum() - (state == 0).detach().sum()).item()
-        reward /= n_removed # Greedy
+        #n_removed = ((next_state == 0).detach().sum() - (state == 0).detach().sum()).item()
+        #reward /= n_removed # Greedy
 
         # Creating new connected components
         board = state.view(height, width)
@@ -63,7 +63,7 @@ def reward_function(state, action, next_state, is_terminal, width, height, n_mov
 width, height = 7, 9 #3, 4
 n_actions = width * height
 
-BATCH_SIZE = 512 
+BATCH_SIZE = 256 
 GAMMA = 0.999
 EPS_START = 0.99
 EPS_END = 0.05#0.01
