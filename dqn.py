@@ -21,23 +21,41 @@ def select_action(state, epsilon, main_network, device):
             action = valid_actions[action_idx].item()
     return action
 
+def connected_components(board):
+    empty_cols = (board == 0).all(axis=0)
+    w = board.shape[1] # Board width
+    n = 1 # Number of connected components
+    i = 0
+    while i < w - 1:
+        if ((not empty_cols[i]) and empty_cols[i+1]) and not empty_cols[i+1:].all():
+            n += 1
+            i += 1
+            while i < w and empty_cols[i]:
+                i += 1
+        else:
+            i += 1
+    return n
 
-def reward_function(state, action, next_state, is_terminal):
-    # TODO: Make rewards less sparse
-    # For example,
-    # - the size of the largest blob (connected component of the same color)
-    # - eliminating a color (could lead to unwanted behaviour)
-    # - number of blocks removed by action (could lead to greedy behaviour)
-    #if is_terminal:
-    #    reward = 1
-    #else:
-    #    reward = -0.1
-
-    n_removed = ((next_state == 0).detach().sum() - (state == 0).detach().sum()).item()
+def reward_function(state, action, next_state, is_terminal, width, height, n_moves):
     if is_terminal:
-        reward = 10
+        reward = 100 / n_moves
     else:
-        reward = -1 / n_removed
+        reward = -1 # Base reward
+        n_removed = ((next_state == 0).detach().sum() - (state == 0).detach().sum()).item()
+        reward /= n_removed # Greedy
+
+        # Creating new connected components
+        board = state.view(height, width)
+        next_board = next_state.view(height, width)
+        if (board == 0).all(axis=0).sum() < (next_board == 0).all(axis=0).sum():
+            new_components = connected_components(next_board) - connected_components(board)
+            reward -= new_components
+
+        # Reducing the number of colors remaining
+        n_colors_state = torch.unique(state).shape[0]
+        n_colors_next_state = torch.unique(next_state).shape[0]
+        if n_colors_next_state < n_colors_state:
+            reward += 1
 
     return torch.tensor(reward).float()
 
@@ -45,14 +63,14 @@ def reward_function(state, action, next_state, is_terminal):
 width, height = 7, 9 #3, 4
 n_actions = width * height
 
-BATCH_SIZE = 64 
+BATCH_SIZE = 512 
 GAMMA = 0.999
 EPS_START = 0.99
 EPS_END = 0.05#0.01
 EPS_DECAY = 100000#500000
 TAU = 0.200
 TARGET_UPDATE_STEPS = 10000
-REPLAY_STEPS = 5
+REPLAY_STEPS = 10 
 LR = 1e-5#1e-5
 CHECKPOINT_PATH = "main_network.pt"
 ####
@@ -95,7 +113,7 @@ while True:
     #print(f"Is terminal: {is_terminal}")
     #print(f"Value of clicked cell: {state[0][action]}")
 
-    reward = reward_function(state, action, next_state, is_terminal)
+    reward = reward_function(state, action, next_state, is_terminal, width, height, board.clicks)
 
     episode_reward += reward.item()
     memory.push(state, action, reward, next_state, is_terminal)
