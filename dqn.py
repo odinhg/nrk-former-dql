@@ -38,13 +38,15 @@ def connected_components(board):
 
 def reward_function(state, action, next_state, is_terminal, width, height, n_moves):
     if is_terminal:
-        reward = 100 / n_moves
+        #reward = 100 / n_moves
+        reward = 0
     else:
         reward = -1 # Base reward
         #n_removed = ((next_state == 0).detach().sum() - (state == 0).detach().sum()).item()
         #reward /= n_removed # Greedy
 
         # Creating new connected components
+        """
         board = state.view(height, width)
         next_board = next_state.view(height, width)
         if (board[-1] == 0).sum() < (next_board[-1] == 0).sum():
@@ -56,6 +58,7 @@ def reward_function(state, action, next_state, is_terminal, width, height, n_mov
         n_colors_next_state = torch.unique(next_state).shape[0]
         if n_colors_next_state < n_colors_state:
             reward += 1
+        """
 
     return torch.tensor(reward).float()
 
