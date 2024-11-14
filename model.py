@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 class Model(nn.Module):
@@ -8,12 +9,18 @@ class Model(nn.Module):
         super().__init__()
         self.width = width
         self.height = height
+
+        self.conv = nn.Sequential(
+                nn.Conv2d(1, 32, kernel_size=(height, 3), stride=1, padding="same"),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, kernel_size=(height, 3), stride=1, padding="same"),
+                nn.ReLU(),
+        )
+
         self.fc = nn.Sequential(
-            nn.Linear(width * height, hidden_dim),
+            nn.Linear(32 * width * height,  256),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, width * height)
+            nn.Linear(256, width * height)
         )
 
         self.init_weights()
@@ -26,7 +33,10 @@ class Model(nn.Module):
     
     def forward(self, x):
         # Normalize the input
-        x = x / (self.width * self.height)
+        #x = x / (self.width * self.height)
+        x = x.view(-1, 1, self.height, self.width)
+        x = self.conv(x)
+        x = torch.flatten(x, 1, -1)
         x = self.fc(x)
         return x
 

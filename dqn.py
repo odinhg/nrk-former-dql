@@ -38,11 +38,12 @@ def connected_components(board):
 
 def reward_function(state, action, next_state, is_terminal, width, height, n_moves):
     if is_terminal:
-        reward = 100 / n_moves
-        #reward = 0
+        #reward = 100 / n_moves
+        reward = 0
     else:
         reward = -1 # Base reward
-
+        
+        """
         # Creating new connected components
         board = state.view(height, width)
         next_board = next_state.view(height, width)
@@ -55,6 +56,7 @@ def reward_function(state, action, next_state, is_terminal, width, height, n_mov
         n_colors_next_state = torch.unique(next_state).shape[0]
         if n_colors_next_state < n_colors_state:
             reward += 1
+        """
 
     return torch.tensor(reward).float()
 
@@ -66,9 +68,9 @@ BATCH_SIZE = 256
 GAMMA = 0.999
 EPS_START = 0.99
 EPS_END = 0.05#0.01
-EPS_DECAY = 100000#500000
+EPS_DECAY = 500000#100000#500000
 TAU = 0.200
-TARGET_UPDATE_STEPS = 10000
+TARGET_UPDATE_STEPS = 25000#10000
 REPLAY_STEPS = 10 
 LR = 1e-5#1e-5
 CHECKPOINT_PATH = "main_network.pt"
