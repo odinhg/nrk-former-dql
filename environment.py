@@ -2,7 +2,6 @@ import pygame
 from pygame import Color
 import random
 
-
 # Constants
 SYMBOLS = ["B", "G", "P", "O"]
 EMPTY = " "
@@ -82,6 +81,9 @@ def coord_to_index(x, y, width):
 def index_to_coord(index, width):
     return index % width, index // width
 
+def is_empty(board, x, y):
+    return board[y][x] == EMPTY
+
 # Main environment class
 class Board:
     def __init__(self, width: int | None = None, height: int | None = None, filename: str | None = None):
@@ -103,16 +105,13 @@ class Board:
 
     def click(self, index):
         x, y = index_to_coord(index, self.width)
-        if self.is_not_empty(x, y):
+        if not is_empty(self.board, x, y):
             self.board = destroy_blocks(self.board, x, y)
             self.board = move_blocks_down(self.board)
             self.clicks += 1
 
     def is_game_over(self):
-        return all(all(block == EMPTY for block in row) for row in self.board)
-
-    def is_not_empty(self, x, y):
-        return self.board[y][x] != EMPTY
+        return all(all(is_empty(self.board, x, y) for x in range(self.width)) for y in range(self.height))
 
     def get_encoded_board(self):
         return [SYMBOL_TO_INDEX[block] for row in self.board for block in row]

@@ -2,10 +2,7 @@ import torch
 import torch.nn as nn
 
 class Model(nn.Module):
-    """
-    Base model to use in the Deep Q Network
-    """
-    def __init__(self, width, height, hidden_dim=256):
+    def __init__(self, width, height):
         super().__init__()
         self.width = width
         self.height = height
@@ -32,8 +29,6 @@ class Model(nn.Module):
                 nn.init.zeros_(m.bias)
     
     def forward(self, x):
-        # Normalize the input
-        #x = x / (self.width * self.height)
         x = x.view(-1, 1, self.height, self.width)
         x = self.conv(x)
         x = torch.flatten(x, 1, -1)
