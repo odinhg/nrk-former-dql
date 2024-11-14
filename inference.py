@@ -14,6 +14,7 @@ for f in output_dir.glob("*.png"):
 
 board = Board(filename=board_file)
 width, height = board.width, board.height
+#board = Board(width=width, height=height)
 
 device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 main_network = Model(width, height)

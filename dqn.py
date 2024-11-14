@@ -2,6 +2,7 @@ import torch
 import random
 import math
 import numpy as np
+from pathlib import Path
 
 from environment import Board
 from replay_memory import ReplayMemory, Transition 
@@ -82,6 +83,9 @@ board = Board(width, height)
 device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 
 main_network = Model(width, height).to(device)
+if Path(CHECKPOINT_PATH).is_file():
+    main_network.load_state_dict(torch.load(CHECKPOINT_PATH))#, map_location=device, weights_only=True))
+
 target_network = Model(width, height).to(device)
 target_network.load_state_dict(main_network.state_dict())
 
