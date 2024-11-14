@@ -22,73 +22,33 @@ def select_action(state, epsilon, main_network, device):
             action = valid_actions[action_idx].item()
     return action
 
-def connected_components(board):
-    empty_cols = (board == 0).all(axis=0)
-    w = board.shape[1] # Board width
-    n = 1 # Number of connected components
-    i = 0
-    while i < w - 1:
-        if ((not empty_cols[i]) and empty_cols[i+1]) and not empty_cols[i+1:].all():
-            n += 1
-            i += 1
-            while i < w and empty_cols[i]:
-                i += 1
-        else:
-            i += 1
-    return n
-
 def reward_function(state, action, next_state, is_terminal, width, height, n_moves):
     if is_terminal:
-        #reward = 100 / n_moves
         reward = 0
     else:
-        reward = -1 # Base reward
-        
-        """
-        # Creating new connected components
-        board = state.view(height, width)
-        next_board = next_state.view(height, width)
-        if (board[-1] == 0).sum() < (next_board[-1] == 0).sum():
-            new_components = connected_components(next_board) - connected_components(board)
-            reward -= new_components
-
-        # Reducing the number of colors remaining
-        n_colors_state = torch.unique(state).shape[0]
-        n_colors_next_state = torch.unique(next_state).shape[0]
-        if n_colors_next_state < n_colors_state:
-            reward += 1
-        """
-
+        reward = -1
     return torch.tensor(reward).float()
 
-###
-width, height = 7, 9 #3, 4
-n_actions = width * height
-
+width, height = 7, 9
 BATCH_SIZE = 256 
 GAMMA = 0.999
 EPS_START = 0.99
-EPS_END = 0.05#0.01
-EPS_DECAY = 500000#100000#500000
+EPS_END = 0.05
+EPS_DECAY = 500000
 TAU = 0.200
-TARGET_UPDATE_STEPS = 25000#10000
+TARGET_UPDATE_STEPS = 25000
+MEMORY_SIZE = 10000
 REPLAY_STEPS = 10 
-LR = 1e-5#1e-5
+LR = 1e-5
 CHECKPOINT_PATH = "main_network.pt"
-####
 
 board = Board(width, height)
-#board = Board(filename="board.txt")
-
 device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
-
 main_network = Model(width, height).to(device)
 if Path(CHECKPOINT_PATH).is_file():
     main_network.load_state_dict(torch.load(CHECKPOINT_PATH))#, map_location=device, weights_only=True))
-
 target_network = Model(width, height).to(device)
 target_network.load_state_dict(main_network.state_dict())
-
 main_network.train()
 for param in target_network.parameters():
     param.requires_grad = False
@@ -96,14 +56,13 @@ for param in target_network.parameters():
 n_steps = 0
 n_episodes = 0
 epsilon = EPS_START
-
 losses = []
 moves_used = []
 episode_rewards = []
 episode_reward = 0
 
 optimizer = torch.optim.Adam(main_network.parameters(), lr=LR)
-memory = ReplayMemory(10000)#(5000)
+memory = ReplayMemory(MEMORY_SIZE)
 
 while True:
     state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
@@ -111,15 +70,7 @@ while True:
     board.click(action)
     next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
     is_terminal = board.is_game_over()
-    
-    #print(f"Original state:\n{state.view(height, width)}")
-    #print(f"Action: {action} (x={action % width}, y={action // width})")
-    #print(f"Next state:\n{next_state.view(height, width)}")
-    #print(f"Is terminal: {is_terminal}")
-    #print(f"Value of clicked cell: {state[0][action]}")
-
     reward = reward_function(state, action, next_state, is_terminal, width, height, board.clicks)
-
     episode_reward += reward.item()
     memory.push(state, action, reward, next_state, is_terminal)
     n_steps += 1
@@ -133,13 +84,10 @@ while True:
         board.reset()
 
         if (n_episodes + 1) % 1000 == 0:
-            # Print summary statistics for the last episodes
+            # Print summary statistics
             mean_loss = np.mean(losses)
             mean_moves_used = np.mean(moves_used)
             mean_episode_reward = np.mean(episode_rewards)
-            median_episode_reward = np.median(episode_rewards) 
-            min_episode_reward = np.min(episode_rewards)
-            max_episode_reward = np.max(episode_rewards)
             print(f"Episode {n_episodes + 1}, Loss: {mean_loss:.5f}, Moves used: {mean_moves_used:.2f}, Epsilon: {epsilon:.3f}, Episode reward: {mean_episode_reward:.2f}")
             losses = []
             moves_used = []
@@ -156,18 +104,14 @@ while True:
         is_terminal_batch = torch.tensor(batch.is_terminal).int().unsqueeze(1).to(device)
         Q_values = main_network(state_batch).gather(1, action_batch)
 
-         #If you want to restrict it to only sampling actions that "make sense" then you should also make sure that you consider that in calculating the max Q of the next state as well
+        # Maxmimize over valid actions only
         target_next_batch = target_network(next_state_batch)
         target_next_batch[next_state_batch == 0] = -float("inf")
         max_next_q_values = target_next_batch.max(dim=-1, keepdim=True).values
         max_next_q_values[max_next_q_values == -float("inf")] = 0
 
         target_Q_values = reward_batch + GAMMA * max_next_q_values * (1 - is_terminal_batch)
-        #target_Q_values = reward_batch + GAMMA * target_network(next_state_batch).max(dim=1, keepdim=True).values * (1 - is_terminal_batch)
-
         loss = torch.nn.functional.mse_loss(Q_values, target_Q_values)
-        #loss = torch.nn.functional.smooth_l1_loss(Q_values, target_Q_values)
-
         losses.append(loss.item())
 
         optimizer.zero_grad()
@@ -176,51 +120,8 @@ while True:
             param.grad.data.clamp_(-10, 10)
         optimizer.step()
 
-        """
-        with torch.no_grad():
-            target_state_dict = target_network.state_dict()
-            main_network_state_dict = main_network.state_dict()
-            for key in main_network_state_dict:
-                target_state_dict[key] = main_network_state_dict[key]*TAU + target_state_dict[key]*(1-TAU)
-            target_network.load_state_dict(target_state_dict)
-        """
-
         # Hard target update and save main policy network checkpoint
         if (n_steps + 1) % TARGET_UPDATE_STEPS == 0:
             target_network.load_state_dict(main_network.state_dict())
             torch.save(main_network.state_dict(), CHECKPOINT_PATH)
 
-
-
-"""
-n_episodes = 0
-
-START_EPISODE:
-
-Initalize board to state S
-
-PICK_ACTION:
-
-Choose valid action A based on epsilon-greedy strategy:
-	with probability epsilon pick a random action
-	with probability 1 - epsilon pick the action with the highest Q-value from the main network
-
-Perform action A
-Get reward R = reward(S, A)
-Observe new state S'
-T = is S' is_terminal?
-
-Store (S,A,R,S',T) into replay memory
-
-Compute loss value based on reward and target network output
-Optimize main network
-
-IF T:
-	n_episodes += 1
-	REPLAY
-	START_EPISODE
-	if (n_episodes + 1) % 100 == 0:
-		update target network: copy weights from main network to target network
-ELSE:
-	PICK_ACTION
-"""

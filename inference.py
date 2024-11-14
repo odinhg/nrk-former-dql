@@ -1,9 +1,7 @@
 import torch
 from pathlib import Path
-
 from model import Model
 from environment import Board
-
 
 board_file = "board.txt"
 model_file = "main_network.pt"
@@ -14,17 +12,14 @@ for f in output_dir.glob("*.png"):
 
 board = Board(filename=board_file)
 width, height = board.width, board.height
-#board = Board(width=width, height=height)
 
 device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
 main_network = Model(width, height)
 main_network.load_state_dict(torch.load(model_file, map_location=device, weights_only=True))
 main_network.to(device)
-
 main_network.eval()
 
 is_terminal = False
-
 actions = []
 
 while not is_terminal:
@@ -35,14 +30,10 @@ while not is_terminal:
     valid_q_values = q_values.cpu()[valid_actions]
     action_idx = valid_q_values.argmax()
     action = valid_actions[action_idx].item()
-
     board.save_board_image(output_dir / f"{len(actions):03}.png", action)
-
     board.click(action)
     next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
     is_terminal = board.is_game_over()
-    print(f"State:\n{state.view(height, width)}")
-    print(f"Action: {action} (x={action % width}, y={action // width})")
     actions.append(action)
 
 print(f"Board cleared in {len(actions)} moves:")
