@@ -1,4 +1,5 @@
 import torch
+from pathlib import Path
 
 from model import Model
 from environment import Board
@@ -6,6 +7,10 @@ from environment import Board
 
 board_file = "board.txt"
 model_file = "main_network.pt"
+output_dir = Path("policy_solution")
+
+for f in output_dir.glob("*.png"):
+    f.unlink()
 
 board = Board(filename=board_file)
 width, height = board.width, board.height
@@ -30,7 +35,7 @@ while not is_terminal:
     action_idx = valid_q_values.argmax()
     action = valid_actions[action_idx].item()
 
-    board.save_board_image(f"policy_solution/{len(actions):03}.png", action)
+    board.save_board_image(output_dir / f"{len(actions):03}.png", action)
 
     board.click(action)
     next_state = torch.tensor(board.get_encoded_board()).float().unsqueeze(0)
